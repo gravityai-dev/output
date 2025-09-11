@@ -1,0 +1,33 @@
+{
+  "name": "@gravityai-dev/output",
+  "version": "1.0.1",
+  "description": "Output nodes for GravityWorkflow - UI rendering components",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "gravity",
+    "workflow",
+    "output",
+    "ui",
+    "cards",
+    "forms",
+    "json"
+  ],
+  "author": "GravityAI",
+  "license": "MIT",
+  "dependencies": {
+    "@gravityai-dev/plugin-base": "file:../plugin-base",
+    "@gravityai-dev/gravity-server": "file:../../../../gravity-server"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@gravityai-dev/plugin-base": "file:../plugin-base"
+  }
+}
