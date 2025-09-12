@@ -32,9 +32,12 @@ export async function publishCards(config: CardPublishConfig): Promise<{
     const publisher = getCardPublisher(
       appConfig.REDIS_HOST,
       appConfig.REDIS_PORT,
-      appConfig.REDIS_PASSWORD,
+      appConfig.REDIS_TOKEN || appConfig.REDIS_PASSWORD,
       "gravity-workflow-service",
-      appConfig.REDIS_USERNAME // username from config
+      appConfig.REDIS_TOKEN ? 'default' : appConfig.REDIS_USERNAME,
+      undefined, // db
+      appConfig.REDIS_TOKEN,
+      appConfig.REDIS_TLS ? true : undefined
     );
 
     // Base message

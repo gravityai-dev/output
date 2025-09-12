@@ -31,9 +31,12 @@ export async function publishForms(config: FormPublishConfig): Promise<{
     const publisher = getFormPublisher(
       appConfig.REDIS_HOST,
       appConfig.REDIS_PORT,
-      appConfig.REDIS_PASSWORD,
+      appConfig.REDIS_TOKEN || appConfig.REDIS_PASSWORD,
       "gravity-workflow-service",
-      appConfig.REDIS_USERNAME
+      appConfig.REDIS_TOKEN ? 'default' : appConfig.REDIS_USERNAME,
+      undefined, // db
+      appConfig.REDIS_TOKEN,
+      appConfig.REDIS_TLS ? true : undefined
     );
 
     const baseMessage = {

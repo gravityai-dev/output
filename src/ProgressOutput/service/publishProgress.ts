@@ -34,9 +34,12 @@ export async function publishProgress(config: ProgressPublishConfig): Promise<{
     const publisher = getProgressPublisher(
       appConfig.REDIS_HOST,
       appConfig.REDIS_PORT,
-      appConfig.REDIS_PASSWORD,
+      appConfig.REDIS_TOKEN || appConfig.REDIS_PASSWORD,
       providerId,
-      appConfig.REDIS_USERNAME
+      appConfig.REDIS_TOKEN ? 'default' : appConfig.REDIS_USERNAME,
+      undefined, // db
+      appConfig.REDIS_TOKEN,
+      appConfig.REDIS_TLS ? true : undefined
     );
 
     const baseMessage = {
