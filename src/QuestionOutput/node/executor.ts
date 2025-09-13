@@ -6,7 +6,6 @@
  */
 
 import { getPlatformDependencies, type NodeExecutionContext } from "@gravityai-dev/plugin-base";
-import { AI_RESULT_CHANNEL } from "@gravityai-dev/gravity-server";
 import {
   validateConfig,
   validateWorkflowVariablesWithWarning,
@@ -89,7 +88,7 @@ export default class QuestionOutputExecutor extends PromiseNode<QuestionOutputCo
       // Publish questions using shared service
       const result = await publishQuestions({
         questions: questionsArray,
-        redisChannel: config.redisChannel || AI_RESULT_CHANNEL,
+        redisChannel: config.redisChannel,
         chatId: finalVars.chatId,
         conversationId: finalVars.conversationId,
         userId: finalVars.userId,

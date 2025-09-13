@@ -6,7 +6,6 @@
  */
 
 import { getPlatformDependencies, type NodeExecutionContext } from "@gravityai-dev/plugin-base";
-import { AI_RESULT_CHANNEL } from "@gravityai-dev/gravity-server";
 import { CardOutputConfig, CardOutputResult, CardOutputServiceResult } from "../util/types";
 import {
   validateConfig,
@@ -77,7 +76,7 @@ export default class CardOutputExecutor extends PromiseNode<CardOutputConfig> {
       // Publish card using shared service
       const result = await publishCards({
         cards: Array.isArray(cardData) ? cardData : [cardData], // Ensure it's an array
-        redisChannel: config.redisChannel || AI_RESULT_CHANNEL,
+        redisChannel: config.redisChannel,
         chatId: finalVars.chatId,
         conversationId: finalVars.conversationId,
         userId: finalVars.userId,

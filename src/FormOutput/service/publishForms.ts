@@ -1,9 +1,10 @@
 /**
- * Redis forms publishing service
+ * Form output service
+ * Publishes form output events using the shared Redis connection
  */
 
-import { getFormPublisher, AI_RESULT_CHANNEL } from "@gravityai-dev/gravity-server";
-import { createLogger, getConfig } from "../../shared/platform";
+import { createLogger, getRedisClient } from "../../shared/platform";
+import { buildOutputEvent, OUTPUT_CHANNEL } from "../../shared/publisher";
 
 const logger = createLogger("FormPublisher");
 
@@ -20,57 +21,62 @@ export interface FormPublishConfig {
 }
 
 /**
- * Publish forms to Redis
+ * Publish a form output event
  */
 export async function publishForms(config: FormPublishConfig): Promise<{
   channel: string;
   success: boolean;
 }> {
   try {
-    const appConfig = getConfig();
-    const publisher = getFormPublisher(
-      appConfig.REDIS_HOST,
-      appConfig.REDIS_PORT,
-      appConfig.REDIS_TOKEN || appConfig.REDIS_PASSWORD,
-      "gravity-workflow-service",
-      appConfig.REDIS_TOKEN ? 'default' : appConfig.REDIS_USERNAME,
-      undefined, // db
-      appConfig.REDIS_TOKEN,
-      appConfig.REDIS_TLS ? true : undefined
-    );
-
-    const baseMessage = {
+    // Build the event structure
+    const event = buildOutputEvent({
+      eventType: "form",
       chatId: config.chatId,
       conversationId: config.conversationId,
       userId: config.userId,
       providerId: config.providerId,
+      data: {
+        forms: config.forms,
+        metadata: {
+          ...config.metadata,
+          workflowId: config.workflowId,
+          workflowRunId: config.workflowRunId,
+        },
+      },
+    });
+
+    // Get Redis client from platform
+    const redis = getRedisClient();
+
+    // Publish to Redis Streams (not Pub/Sub) for reliable delivery
+    const streamKey = "workflow:events:stream";
+    const conversationId = config.conversationId || "";
+
+    await redis.xadd(
+      streamKey,
+      "*",
+      "conversationId",
+      conversationId,
+      "channel",
+      OUTPUT_CHANNEL,
+      "message",
+      JSON.stringify(event)
+    );
+
+    logger.info("Form output published as GravityEvent", {
+      eventType: "form",
       workflowId: config.workflowId,
-      workflowRunId: config.workflowRunId,
-      metadata: config.metadata,
+      channel: OUTPUT_CHANNEL,
+      formCount: config.forms?.length || 0,
+      event: event,
+    });
+
+    return {
+      channel: OUTPUT_CHANNEL,
+      success: true,
     };
-
-    const channel = config.redisChannel || AI_RESULT_CHANNEL;
-
-    if (config.forms && config.forms.length > 0) {
-      // Publish each form individually since the API expects single forms
-      for (const form of config.forms) {
-        await publisher.publishForm(
-          form,
-          baseMessage,
-          config.redisChannel ? { channel: config.redisChannel } : undefined
-        );
-      }
-
-      logger.info("Forms published successfully", {
-        channel,
-        formCount: config.forms.length,
-        workflowId: config.workflowId,
-      });
-    }
-
-    return { channel, success: true };
   } catch (error: any) {
-    logger.error("Failed to publish forms", {
+    logger.error("Failed to publish form output", {
       error: error.message,
       workflowId: config.workflowId,
     });

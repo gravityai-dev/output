@@ -6,7 +6,6 @@
  */
 
 import { getPlatformDependencies, type NodeExecutionContext } from "@gravityai-dev/plugin-base";
-import { AI_RESULT_CHANNEL } from "@gravityai-dev/gravity-server";
 import { JSONOutputConfig, JSONOutputResult, JSONOutputServiceResult } from "../util/types";
 import { publishJSON } from "../service/publishJSON";
 
@@ -65,7 +64,7 @@ export default class JSONOutputExecutor extends PromiseNode<JSONOutputConfig> {
       const result = await publishJSON({
         data: jsonData,
         dataType: config.dataType || "json",
-        redisChannel: config.redisChannel || AI_RESULT_CHANNEL,
+        redisChannel: config.redisChannel,
         chatId: finalVars.chatId,
         conversationId: finalVars.conversationId,
         userId: finalVars.userId,

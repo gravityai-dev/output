@@ -15,6 +15,7 @@ export const CallbackNode = deps.CallbackNode;
 export const NodeExecutionContext = deps.NodeExecutionContext;
 export const EnhancedNodeDefinition = deps.EnhancedNodeDefinition;
 export const NodeInputType = deps.NodeInputType;
+export const getRedisClient = deps.getRedisClient;
 
 // Create service-specific loggers
 export const serviceLogger = createLogger("Output");

@@ -1,11 +1,10 @@
 /**
- * Text publishing service
- * Handles publishing text output messages to Redis channels
+ * Text output service
+ * Publishes text output events using the shared Redis connection
  */
 
-import { getTextPublisher } from "@gravityai-dev/gravity-server";
-import { getConfig, createLogger } from "../../shared/platform";
-import { AI_RESULT_CHANNEL } from "@gravityai-dev/gravity-server";
+import { createLogger, getRedisClient } from "../../shared/platform";
+import { buildOutputEvent, OUTPUT_CHANNEL } from "../../shared/publisher";
 
 const logger = createLogger("TextPublisher");
 
@@ -22,55 +21,57 @@ export interface TextPublishConfig {
 }
 
 /**
- * Publish a text output to Redis
+ * Publish a text output event
  */
 export async function publishText(config: TextPublishConfig): Promise<{
   channel: string;
   success: boolean;
 }> {
   try {
-    // Create publisher - simple and direct
-    const appConfig = getConfig();
-    const providerId = "gravity-workflow-service";
-
-    const publisher = getTextPublisher(
-      appConfig.REDIS_HOST,
-      appConfig.REDIS_PORT,
-      appConfig.REDIS_TOKEN || appConfig.REDIS_PASSWORD,
-      providerId,
-      appConfig.REDIS_TOKEN ? 'default' : appConfig.REDIS_USERNAME,
-      undefined, // db
-      appConfig.REDIS_TOKEN,
-      appConfig.REDIS_TLS ? true : undefined
-    );
-
-    // Base message
-    const baseMessage = {
+    // Build the event structure
+    const event = buildOutputEvent({
+      eventType: "text",
       chatId: config.chatId,
       conversationId: config.conversationId,
       userId: config.userId,
       providerId: config.providerId,
-      metadata: {
-        ...config.metadata,
-        workflowId: config.workflowId,
-        workflowRunId: config.workflowRunId,
+      data: {
+        text: config.text,
+        metadata: {
+          ...config.metadata,
+          workflowId: config.workflowId,
+          workflowRunId: config.workflowRunId,
+        },
       },
-    };
+    });
 
-    // Publish text
-    await publisher.publishText(
-      config.text,
-      baseMessage,
-      config.redisChannel ? { channel: config.redisChannel } : undefined
+    // Get Redis client from platform
+    const redis = getRedisClient();
+
+    // Publish to Redis Streams (not Pub/Sub) for reliable delivery
+    const streamKey = "workflow:events:stream";
+    const conversationId = config.conversationId || "";
+
+    await redis.xadd(
+      streamKey,
+      "*",
+      "conversationId",
+      conversationId,
+      "channel",
+      OUTPUT_CHANNEL,
+      "message",
+      JSON.stringify(event)
     );
 
-    logger.info("Text output published", {
-      channel: config.redisChannel ?? AI_RESULT_CHANNEL,
+    logger.info("Text output published as GravityEvent", {
+      eventType: "text",
       workflowId: config.workflowId,
+      channel: OUTPUT_CHANNEL,
+      event: event,
     });
 
     return {
-      channel: config.redisChannel ?? AI_RESULT_CHANNEL,
+      channel: OUTPUT_CHANNEL,
       success: true,
     };
   } catch (error: any) {

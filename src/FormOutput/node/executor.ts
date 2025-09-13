@@ -3,7 +3,6 @@
  */
 
 import { getPlatformDependencies, type NodeExecutionContext } from "@gravityai-dev/plugin-base";
-import { AI_RESULT_CHANNEL } from "@gravityai-dev/gravity-server";
 import { FormOutputConfig, FormOutputResult, FormOutputServiceResult } from "../util/types";
 import { publishForms } from "../service/publishForms";
 
@@ -38,7 +37,7 @@ export default class FormOutputExecutor extends PromiseNode<FormOutputConfig> {
 
       const result = await publishForms({
         forms: Array.isArray(formData) ? formData : [formData],
-        redisChannel: config.redisChannel || AI_RESULT_CHANNEL,
+        redisChannel: config.redisChannel,
         chatId: finalVars.chatId,
         conversationId: finalVars.conversationId,
         userId: finalVars.userId,

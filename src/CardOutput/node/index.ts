@@ -8,7 +8,7 @@ function createNodeDefinition(): EnhancedNodeDefinition {
   const { NodeInputType } = getPlatformDependencies();
   
   return {
-    packageVersion: "1.0.3",
+    packageVersion: "1.0.4",
     type: NODE_TYPE,
     isService: false,
     name: "Card Output",

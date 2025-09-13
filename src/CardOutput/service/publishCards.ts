@@ -1,15 +1,16 @@
 /**
- * Redis cards publishing service
+ * Card output service
+ * Publishes card output events using the shared Redis connection
  */
 
-import { getCardPublisher, AI_RESULT_CHANNEL } from "@gravityai-dev/gravity-server";
-import { createLogger, getConfig } from "../../shared/platform";
+import { createLogger, getRedisClient } from "../../shared/platform";
+import { buildOutputEvent, OUTPUT_CHANNEL } from "../../shared/publisher";
 
 const logger = createLogger("CardPublisher");
 
 export interface CardPublishConfig {
   cards: any[]; // Flexible card data - any JSON structure
-  redisChannel?: string; // Optional, defaults to AI_RESULT_CHANNEL
+  redisChannel?: string;
   chatId: string;
   conversationId: string;
   userId: string;
@@ -20,76 +21,64 @@ export interface CardPublishConfig {
 }
 
 /**
- * Publish cards to Redis
+ * Publish a card output event
  */
 export async function publishCards(config: CardPublishConfig): Promise<{
   channel: string;
   success: boolean;
 }> {
   try {
-    // Create publisher - simple and direct
-    const appConfig = getConfig();
-    const publisher = getCardPublisher(
-      appConfig.REDIS_HOST,
-      appConfig.REDIS_PORT,
-      appConfig.REDIS_TOKEN || appConfig.REDIS_PASSWORD,
-      "gravity-workflow-service",
-      appConfig.REDIS_TOKEN ? 'default' : appConfig.REDIS_USERNAME,
-      undefined, // db
-      appConfig.REDIS_TOKEN,
-      appConfig.REDIS_TLS ? true : undefined
-    );
-
-    // Base message
-    const baseMessage = {
+    // Build the event structure
+    const event = buildOutputEvent({
+      eventType: "cards",
       chatId: config.chatId,
       conversationId: config.conversationId,
       userId: config.userId,
       providerId: config.providerId,
+      data: {
+        cards: config.cards,
+        metadata: {
+          ...config.metadata,
+          workflowId: config.workflowId,
+          workflowRunId: config.workflowRunId,
+        },
+      },
+    });
+
+    // Get Redis client from platform
+    const redis = getRedisClient();
+
+    // Publish to Redis Streams (not Pub/Sub) for reliable delivery
+    const streamKey = "workflow:events:stream";
+    const conversationId = config.conversationId || "";
+
+    await redis.xadd(
+      streamKey,
+      "*",
+      "conversationId",
+      conversationId,
+      "channel",
+      OUTPUT_CHANNEL,
+      "message",
+      JSON.stringify(event)
+    );
+
+    logger.info("Card output published as GravityEvent", {
+      eventType: "cards",
       workflowId: config.workflowId,
-      workflowRunId: config.workflowRunId,
-      metadata: config.metadata,
-    };
-
-    // Determine the channel to use
-    const channel = config.redisChannel || AI_RESULT_CHANNEL;
-
-    // Only publish cards if the list has items
-    if (config.cards && config.cards.length > 0) {
-      // Publish cards - the CardPublisher now accepts any JSON structure
-      await publisher.publishCards(
-        config.cards,
-        baseMessage,
-        config.redisChannel ? { channel: config.redisChannel } : undefined
-      );
-
-      logger.info("Cards published successfully", {
-        channel,
-        cardCount: config.cards.length,
-        workflowId: config.workflowId,
-        chatId: config.chatId,
-        conversationId: config.conversationId,
-      });
-    } else {
-      logger.info("No cards to publish", {
-        workflowId: config.workflowId,
-        chatId: config.chatId,
-        conversationId: config.conversationId,
-        cardCount: config.cards?.length || 0,
-        channel,
-      });
-    }
+      channel: OUTPUT_CHANNEL,
+      cardCount: config.cards?.length || 0,
+      event: event,
+    });
 
     return {
-      channel,
+      channel: OUTPUT_CHANNEL,
       success: true,
     };
   } catch (error: any) {
-    logger.error("Failed to publish cards", {
+    logger.error("Failed to publish card output", {
       error: error.message,
       workflowId: config.workflowId,
-      chatId: config.chatId,
-      conversationId: config.conversationId,
     });
     throw error;
   }
