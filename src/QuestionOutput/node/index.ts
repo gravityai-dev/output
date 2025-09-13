@@ -8,7 +8,7 @@ function createNodeDefinition(): EnhancedNodeDefinition {
   const { NodeInputType } = getPlatformDependencies();
   
   return {
-    packageVersion: "1.0.4",
+    packageVersion: "1.0.8",
     type: NODE_TYPE,
     isService: false,
     name: "Question Output",

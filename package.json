@@ -1,6 +1,6 @@
 {
   "name": "@gravityai-dev/output",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Output nodes for GravityWorkflow - UI rendering components",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
