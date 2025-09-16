@@ -1,12 +1,50 @@
 /**
  * Questions output service
- * Publishes questions output events using the shared Redis connection
+ * Publishes questions output events using the gravity publisher
  */
 
-import { createLogger, getRedisClient } from "../../shared/platform";
-import { buildOutputEvent, OUTPUT_CHANNEL } from "../../shared/publisher";
+import { getPlatformDependencies } from "@gravityai-dev/plugin-base";
+import { v4 as uuid } from "uuid";
+
+// Get platform dependencies
+const deps = getPlatformDependencies();
+export const createLogger = deps.createLogger;
+
+// Single channel for all events
+export const OUTPUT_CHANNEL = "gravity:output";
 
 const logger = createLogger("QuestionsPublisher");
+
+/**
+ * Build a unified GravityEvent structure
+ */
+export function buildOutputEvent(config: {
+  eventType: string;
+  chatId: string;
+  conversationId: string;
+  userId: string;
+  providerId?: string;
+  data: Record<string, any>;
+}): Record<string, any> {
+  // Ensure required fields
+  if (!config.chatId || !config.conversationId || !config.userId) {
+    throw new Error("chatId, conversationId, and userId are required");
+  }
+
+  // Build unified message structure
+  return {
+    id: uuid(),
+    timestamp: new Date().toISOString(),
+    providerId: config.providerId || "gravity-services",
+    chatId: config.chatId,
+    conversationId: config.conversationId,
+    userId: config.userId,
+    __typename: "GravityEvent", // Single type for all events
+    type: "GRAVITY_EVENT", // Single type enum
+    eventType: config.eventType, // Distinguishes between text, progress, card, etc.
+    data: config.data, // Contains the actual event data
+  };
+}
 
 export interface QuestionPublishConfig {
   questions: string[];
@@ -45,31 +83,16 @@ export async function publishQuestions(config: QuestionPublishConfig): Promise<{
       },
     });
 
-    // Get Redis client from platform
-    const redis = getRedisClient();
-
-    // Publish to Redis Streams (not Pub/Sub) for reliable delivery
-    const REDIS_NAMESPACE = process.env.REDIS_NAMESPACE || process.env.NODE_ENV || "local";
-    const streamKey = `${REDIS_NAMESPACE}:workflow:events:stream`;
-    const conversationId = config.conversationId || "";
-
-    await redis.xadd(
-      streamKey,
-      "*",
-      "conversationId",
-      conversationId,
-      "channel",
-      OUTPUT_CHANNEL,
-      "message",
-      JSON.stringify(event)
-    );
+    // Use the universal gravityPublish function from platform API
+    const platformDeps = getPlatformDependencies();
+    await platformDeps.gravityPublish(OUTPUT_CHANNEL, event);
 
     logger.info("Questions output published as GravityEvent", {
       eventType: "questions",
       workflowId: config.workflowId,
       channel: OUTPUT_CHANNEL,
       questionCount: config.questions?.length || 0,
-      event: event,
+      chatId: config.chatId,
     });
 
     return {
