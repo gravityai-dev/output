@@ -3,17 +3,10 @@
  * Publishes questions output events using the gravity publisher
  */
 
-import { getPlatformDependencies } from "@gravityai-dev/plugin-base";
 import { v4 as uuid } from "uuid";
-
-// Get platform dependencies
-const deps = getPlatformDependencies();
-export const createLogger = deps.createLogger;
 
 // Single channel for all events
 export const OUTPUT_CHANNEL = "gravity:output";
-
-const logger = createLogger("QuestionsPublisher");
 
 /**
  * Build a unified GravityEvent structure
@@ -61,10 +54,12 @@ export interface QuestionPublishConfig {
 /**
  * Publish a questions output event
  */
-export async function publishQuestions(config: QuestionPublishConfig): Promise<{
+export async function publishQuestions(config: QuestionPublishConfig, api: any): Promise<{
   channel: string;
   success: boolean;
 }> {
+  const logger = api?.createLogger?.("QuestionsPublisher") || console;
+  
   try {
     // Build the event structure
     const event = buildOutputEvent({
@@ -83,9 +78,11 @@ export async function publishQuestions(config: QuestionPublishConfig): Promise<{
       },
     });
 
-    // Use the universal gravityPublish function from platform API
-    const platformDeps = getPlatformDependencies();
-    await platformDeps.gravityPublish(OUTPUT_CHANNEL, event);
+    // Use the injected API's gravityPublish function
+    if (!api || !api.gravityPublish) {
+      throw new Error("API with gravityPublish not provided to publishQuestions");
+    }
+    await api.gravityPublish(OUTPUT_CHANNEL, event);
 
     logger.info("Questions output published as GravityEvent", {
       eventType: "questions",
@@ -94,13 +91,12 @@ export async function publishQuestions(config: QuestionPublishConfig): Promise<{
       questionCount: config.questions?.length || 0,
       chatId: config.chatId,
     });
-
     return {
       channel: OUTPUT_CHANNEL,
       success: true,
     };
   } catch (error: any) {
-    logger.error("Failed to publish questions output", {
+    logger.error("Failed to publish question output", {
       error: error.message,
       workflowId: config.workflowId,
     });

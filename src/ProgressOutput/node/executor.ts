@@ -5,16 +5,13 @@
  * It publishes to the configured channel for workflow progress updates.
  */
 
-import { getPlatformDependencies, type NodeExecutionContext } from "@gravityai-dev/plugin-base";
+import { PromiseNode, type NodeExecutionContext } from "@gravityai-dev/plugin-base";
 import { ProgressOutputConfig, ProgressOutputResult, ProgressOutputServiceResult } from "../util/types";
 import { publishProgress } from "../service/publishProgress";
 
-// Get platform dependencies - CRITICAL: Use Pattern A to avoid instanceof errors
-const { PromiseNode, createLogger } = getPlatformDependencies();
-
 const NODE_TYPE = "ProgressOutput";
 
-export default class ProgressOutputExecutor extends PromiseNode<ProgressOutputConfig> {
+export default class ProgressOutputExecutor extends PromiseNode {
   constructor() {
     super(NODE_TYPE);
   }
@@ -24,9 +21,9 @@ export default class ProgressOutputExecutor extends PromiseNode<ProgressOutputCo
     config: ProgressOutputConfig,
     context: NodeExecutionContext
   ): Promise<ProgressOutputResult> {
-    const logger = createLogger("ProgressOutput");
-    const workflow = context.workflow!;
-
+    // Get logger from injected API
+    const logger = context.api?.createLogger?.(NODE_TYPE) || console;
+    
     // Validate config
     if (!config.text) {
       throw new Error("Text is required");
@@ -42,7 +39,8 @@ export default class ProgressOutputExecutor extends PromiseNode<ProgressOutputCo
     });
 
     // Get workflow variables with defaults
-    const workflowVars = context.workflow?.variables || {};
+    const workflow = context.workflow!;
+    const workflowVars = workflow?.variables || {};
     const finalVars = {
       chatId: workflowVars.chatId || "",
       conversationId: workflowVars.conversationId || "",
@@ -67,7 +65,7 @@ export default class ProgressOutputExecutor extends PromiseNode<ProgressOutputCo
         workflowId: workflow.id,
         workflowRunId: workflow.runId,
         metadata: inputs.metadata,
-      });
+      }, context.api);
 
       // Build service result
       const serviceResult: ProgressOutputServiceResult = {

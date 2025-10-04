@@ -3,17 +3,10 @@
  * Publishes JSON output events using the gravity publisher
  */
 
-import { getPlatformDependencies } from "@gravityai-dev/plugin-base";
 import { v4 as uuid } from "uuid";
-
-// Get platform dependencies
-const deps = getPlatformDependencies();
-export const createLogger = deps.createLogger;
 
 // Single channel for all events
 export const OUTPUT_CHANNEL = "gravity:output";
-
-const logger = createLogger("JSONPublisher");
 
 /**
  * Build a unified GravityEvent structure
@@ -62,10 +55,12 @@ export interface JSONPublishConfig {
 /**
  * Publish a JSON output event
  */
-export async function publishJSON(config: JSONPublishConfig): Promise<{
+export async function publishJSON(config: JSONPublishConfig, api: any): Promise<{
   channel: string;
   success: boolean;
 }> {
+  const logger = api?.createLogger?.("JSONPublisher") || console;
+  
   try {
     // Build the event structure
     const event = buildOutputEvent({
@@ -85,9 +80,11 @@ export async function publishJSON(config: JSONPublishConfig): Promise<{
       },
     });
 
-    // Use the universal gravityPublish function from platform API
-    const platformDeps = getPlatformDependencies();
-    await platformDeps.gravityPublish(OUTPUT_CHANNEL, event);
+    // Use the injected API's gravityPublish function
+    if (!api || !api.gravityPublish) {
+      throw new Error("API with gravityPublish not provided to publishJSON");
+    }
+    await api.gravityPublish(OUTPUT_CHANNEL, event);
 
     logger.info("JSON output published as GravityEvent", {
       eventType: "json",

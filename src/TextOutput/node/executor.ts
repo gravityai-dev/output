@@ -56,7 +56,7 @@ export default class TextOutputExecutor extends PromiseNode<TextOutputConfig> {
     });
 
     try {
-      // Publish text using shared service
+      // Publish text using shared service with injected API
       const result = await publishText({
         text: config.text,
         redisChannel: config.redisChannel,
@@ -67,7 +67,7 @@ export default class TextOutputExecutor extends PromiseNode<TextOutputConfig> {
         workflowId: workflow.id,
         workflowRunId: workflow.runId,
         metadata: inputs.metadata,
-      });
+      }, context.api);
 
       // Build service result
       const serviceResult: TextOutputServiceResult = {

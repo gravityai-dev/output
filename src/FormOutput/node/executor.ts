@@ -45,7 +45,7 @@ export default class FormOutputExecutor extends PromiseNode<FormOutputConfig> {
         workflowId: workflow.id,
         workflowRunId: workflow.runId,
         metadata: inputs.metadata,
-      });
+      }, context.api);
 
       const serviceResult: FormOutputServiceResult = {
         formData,

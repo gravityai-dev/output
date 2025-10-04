@@ -7,9 +7,8 @@ const plugin = createPlugin({
   description: packageJson.description,
 
   async setup(api: GravityPluginAPI) {
-    // Initialize platform dependencies
-    const { initializePlatformFromAPI } = await import("@gravityai-dev/plugin-base");
-    initializePlatformFromAPI(api);
+    // No longer need to initialize platform dependencies
+    // API is now injected directly into node executors via context
 
     // Import and register CardOutput node
     const { CardOutputNode } = await import("./CardOutput/node");

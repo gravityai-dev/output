@@ -72,7 +72,7 @@ export default class JSONOutputExecutor extends PromiseNode<JSONOutputConfig> {
         workflowId: workflow.id,
         workflowRunId: workflow.runId,
         metadata: inputs.metadata,
-      });
+      }, context.api);
 
       // Build service result
       const serviceResult: JSONOutputServiceResult = {

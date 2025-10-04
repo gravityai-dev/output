@@ -60,8 +60,10 @@ export interface TextPublishConfig {
 
 /**
  * Publish a text output event
+ * @param config - The text configuration
+ * @param api - The injected platform API from context
  */
-export async function publishText(config: TextPublishConfig): Promise<{
+export async function publishText(config: TextPublishConfig, api: any): Promise<{
   channel: string;
   success: boolean;
 }> {
@@ -83,9 +85,11 @@ export async function publishText(config: TextPublishConfig): Promise<{
       },
     });
 
-    // Use the universal gravityPublish function from platform API
-    const platformDeps = getPlatformDependencies();
-    await platformDeps.gravityPublish(OUTPUT_CHANNEL, event);
+    // Use the injected API's gravityPublish function
+    if (!api || !api.gravityPublish) {
+      throw new Error("API with gravityPublish not provided to publishText");
+    }
+    await api.gravityPublish(OUTPUT_CHANNEL, event);
 
     logger.info("Text output published as GravityEvent", {
       eventType: "text",

@@ -96,7 +96,7 @@ export default class QuestionOutputExecutor extends PromiseNode<QuestionOutputCo
         workflowId: workflow.id,
         workflowRunId: workflow.runId,
         metadata: inputs.metadata,
-      });
+      }, context.api);
 
       // Build service result
       const serviceResult: QuestionOutputServiceResult = {

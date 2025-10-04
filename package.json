@@ -1,6 +1,6 @@
 {
   "name": "@gravityai-dev/output",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "description": "Output nodes for GravityWorkflow - UI rendering components",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,7 +21,7 @@
   "author": "GravityAI",
   "license": "MIT",
   "dependencies": {
-    "@gravityai-dev/plugin-base": "^1.0.28",
+    "@gravityai-dev/plugin-base": "^1.0.30",
     "@gravityai-dev/gravity-server": "^0.2.121",
     "uuid": "^9.0.0"
   },
@@ -30,6 +30,6 @@
     "@types/uuid": "^9.0.0"
   },
   "peerDependencies": {
-    "@gravityai-dev/plugin-base": "^1.0.28"
+    "@gravityai-dev/plugin-base": "^1.0.30"
   }
 }

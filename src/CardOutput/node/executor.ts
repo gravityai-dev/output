@@ -84,7 +84,7 @@ export default class CardOutputExecutor extends PromiseNode<CardOutputConfig> {
         workflowId: workflow.id,
         workflowRunId: workflow.runId,
         metadata: inputs.metadata,
-      });
+      }, context.api);
 
       // Build service result
       const serviceResult: CardOutputServiceResult = {

@@ -3,17 +3,10 @@
  * Publishes progress output events using the gravity publisher
  */
 
-import { getPlatformDependencies } from "@gravityai-dev/plugin-base";
 import { v4 as uuid } from "uuid";
-
-// Get platform dependencies
-const deps = getPlatformDependencies();
-export const createLogger = deps.createLogger;
 
 // Single channel for all events
 export const OUTPUT_CHANNEL = "gravity:output";
-
-const logger = createLogger("ProgressPublisher");
 
 /**
  * Build a unified GravityEvent structure
@@ -61,11 +54,16 @@ export interface ProgressPublishConfig {
 
 /**
  * Publish a progress output event
+ * @param config - The progress configuration
+ * @param api - The injected platform API from context
  */
-export async function publishProgress(config: ProgressPublishConfig): Promise<{
+export async function publishProgress(config: ProgressPublishConfig, api: any): Promise<{
   channel: string;
   success: boolean;
 }> {
+  // Get logger from injected API
+  const logger = api?.createLogger?.("ProgressPublisher") || console;
+  
   try {
     // Build the event structure
     const event = buildOutputEvent({
@@ -85,9 +83,11 @@ export async function publishProgress(config: ProgressPublishConfig): Promise<{
       },
     });
 
-    // Use the universal gravityPublish function from platform API
-    const platformDeps = getPlatformDependencies();
-    await platformDeps.gravityPublish(OUTPUT_CHANNEL, event);
+    // Use the injected API's gravityPublish function
+    if (!api || !api.gravityPublish) {
+      throw new Error("API with gravityPublish not provided to publishProgress");
+    }
+    await api.gravityPublish(OUTPUT_CHANNEL, event);
 
     logger.info("Progress output published as GravityEvent", {
       eventType: "progress",
